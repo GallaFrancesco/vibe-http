@@ -60,16 +60,24 @@ struct HTTP2FrameStreamDependency {
 	}
 }
 
+/// DITTO
+HTTP2FrameHeader unpackHTTP2Frame(R,T)(ref R payloadDst, T src, ref bool endStream, ref bool endHeaders, ref bool ack, ref HTTP2FrameStreamDependency sdep) @safe
+{
+	auto header = unpackHTTP2FrameHeader(src);
+	unpackHTTP2Frame(payloadDst, src, header, endStream, endHeaders, ack, sdep);
+	return header;
+}
+
 /** unpacks a frame putting the payload in `payloadDst` and returning the header
   * implements the checks required for each frame type (Section 6 of HTTP/2 RFC)
   *
   * Invoked by a possible HTTP/2 request handler, the payload is meant to be handled by
   * the caller.
+  *
+  * Note: @nogc-compatible as long as payloadDst.put is @nogc (AllocAppender.put isn't)
   */
-HTTP2FrameHeader unpackHTTP2Frame(R,T)(ref R payloadDst, ref T src, ref bool endStream, ref bool needsCont, ref bool ack, ref HTTP2FrameStreamDependency sdep) @safe @nogc
-	if(is(ElementType!T : ubyte))
+void unpackHTTP2Frame(R,T)(ref R payloadDst, T src, HTTP2FrameHeader header, ref bool endStream, ref bool endHeaders, ref bool ack, ref HTTP2FrameStreamDependency sdep) @safe
 {
-	auto header = unpackHTTP2FrameHeader(src);
 	size_t len = header.payloadLength;
 
 	switch(header.type) {
