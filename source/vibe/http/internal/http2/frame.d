@@ -320,7 +320,8 @@ unittest {
 
 /*** FRAME HEADER ***/
 /// header packing
-void createHTTP2FrameHeader(R)(ref R dst, const uint len, const HTTP2FrameType type, const ubyte flags, const uint sid) @safe @nogc
+/// @nogc-compatible if dst.put is @nogc
+void createHTTP2FrameHeader(R)(ref R dst, const uint len, const HTTP2FrameType type, const ubyte flags, const uint sid) @safe
 {
 	dst.serialize(HTTP2FrameHeader(len, type, flags, sid));
 }
@@ -333,9 +334,17 @@ void serializeHTTP2FrameHeader(R)(ref R dst, HTTP2FrameHeader header) @safe @nog
 
 /// unpacking
 HTTP2FrameHeader unpackHTTP2FrameHeader(R)(ref R src) @safe @nogc
-	if(is(ElementType!R : ubyte))
 {
-	auto header = HTTP2FrameHeader(src);
+	HTTP2FrameHeader header = void;
+
+	static if(isStaticArray!R) {
+		import vibe.internal.array : BatchBuffer;
+		BatchBuffer!(ubyte, 9) bbuf;
+		bbuf.putN(src);
+		header = HTTP2FrameHeader(bbuf);
+	} else {
+		header = HTTP2FrameHeader(src);
+	}
 
 	return header;
 }
