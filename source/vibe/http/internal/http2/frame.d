@@ -425,7 +425,8 @@ uint fromBytes(R)(R src, uint n) @safe @nogc
 }
 
 /// fill a buffer with fields from `header`
-private void serialize(R)(ref R dst, HTTP2FrameHeader header) @safe @nogc
+/// @nogc-compatible if dst.put is @nogc
+private void serialize(R)(ref R dst, HTTP2FrameHeader header) @safe
 	if(isOutputRange!(R, ubyte))
 {
 	static foreach(f; __traits(allMembers, HTTP2FrameHeader)) {
