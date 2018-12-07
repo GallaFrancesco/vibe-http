@@ -292,6 +292,14 @@ void buildHTTP2Frame(R,H,T)(ref R dst, ref H header, ref T payload) @safe @nogc
 	foreach(b; payload) dst.put(b);
 }
 
+/// DITTO
+/// @nogc-compatible if dst.put is @nogc
+void buildHTTP2Frame(R,T)(ref R dst, T payload) @safe
+{
+	// put payload
+	foreach(b; payload) dst.put(b);
+}
+
 unittest {
 	import vibe.internal.array : BatchBuffer;
 
