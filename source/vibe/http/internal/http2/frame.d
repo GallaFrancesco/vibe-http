@@ -19,6 +19,8 @@ import std.algorithm.mutation;
   * https://tools.ietf.org/html/rfc7540#section-6
 */
 
+enum uint HTTP2HeaderLength = 9;
+
 enum HTTP2FrameType {
 	DATA 			= 0x0,
 	HEADERS 		= 0x1,
