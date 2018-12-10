@@ -308,7 +308,7 @@ bool handleHTTP2Request(UStream)(ref HTTP2ConnectionStream!UStream stream, TCPCo
 
 	if(stream.state == HTTP2StreamState.HALF_CLOSED_REMOTE) {
 		stream.state = HTTP2StreamState.CLOSED;
-	} else {
+	} else if(stream.state != HTTP2StreamState.CLOSED) {
 		stream.state = HTTP2StreamState.HALF_CLOSED_LOCAL;
 	}
 

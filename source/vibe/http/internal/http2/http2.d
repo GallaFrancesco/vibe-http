@@ -3,6 +3,7 @@ module vibe.http.internal.http2.http2;
 import vibe.http.internal.http2.frame;
 import vibe.http.internal.http2.settings;
 import vibe.http.internal.http2.exchange;
+import vibe.http.internal.http2.error;
 import vibe.http.internal.http2.hpack.tables;
 import vibe.http.internal.http2.hpack.hpack;
 import vibe.http.internal.http2.hpack.exception;
@@ -178,10 +179,13 @@ unittest {
 }
 
 unittest {
-	//import vibe.core.core : runApplication;
+	import vibe.core.core : runApplication;
 
 	void handleRequest (HTTPServerRequest req, HTTPServerResponse res)
-	@safe {}
+	@safe {
+		if (req.path == "/")
+			res.writeBody("Hello, World! This response is sent through HTTP/2 with TLS");
+	}
 
 
 	HTTPServerSettings settings;
@@ -197,7 +201,7 @@ unittest {
 
 	// dummy, just for testing
 	listenHTTP!handleRequest(settings);
-	//runApplication();
+	runApplication();
 }
 
 /**
@@ -380,7 +384,6 @@ private void handleFrameAlloc(ConnectionStream)(ref ConnectionStream stream, TCP
 				} else {
 					stream.state = HTTP2StreamState.HALF_CLOSED_REMOTE;
 				}
-				logInfo("Setting CLOSE_STREAM");
 			}
 			// parse headers in payload
 			if(endHeaders) {
@@ -388,16 +391,22 @@ private void handleFrameAlloc(ConnectionStream)(ref ConnectionStream stream, TCP
 				auto hdec = appender!(HTTP2HeaderTableField[]);
 				try {
 					decodeHPACK(cast(immutable(ubyte)[])payload.data, hdec, table, alloc);
+					// insert data in table
+					hdec.data.each!((h) { if(h.index) table.insert(h); });
+					// write a response (HEADERS + DATA according to request method)
+					handleHTTP2Request(stream, connection, context, hdec.data, table, alloc);
 				} catch (HPACKException e) {
-					logWarn(e.message);
 					// send GOAWAY frame
-				} catch (Exception e) {
-					assert(false);
+					BatchBuffer!(ubyte, GOAWAYFrameLength) gbuf;
+					gbuf.putN(GOAWAYFrameLength);
+
+					gbuf.buildGOAWAYFrame(stream.streamId, HTTP2Error.COMPRESSION_ERROR);
+					stream.write(gbuf.peekDst);
+
+					logWarn("%s: %s", "Sent GOAWAY Frame", e.message);
+					stream.state = HTTP2StreamState.CLOSED;
+					return;
 				}
-				// insert data in table
-				hdec.data.each!((h) { if(h.index) table.insert(h); });
-				// write a response (HEADERS + DATA according to request method)
-				handleHTTP2Request(stream, connection, context, hdec.data, table, alloc);
 			} else {
 				// wait for the next CONTINUATION frame until end_headers flag is set
 				// END_STREAM flag does not count in this case
@@ -480,7 +489,7 @@ private void handleFrameAlloc(ConnectionStream)(ref ConnectionStream stream, TCP
 				try {
 					decodeHPACK(cast(immutable(ubyte)[])payload.data, hdec, table, alloc);
 				} catch (HPACKException e) {
-					logWarn(e.message);
+					logWarn(e.msg);
 					// send GOAWAY frame
 				} catch (Exception e) {
 					assert(false);
