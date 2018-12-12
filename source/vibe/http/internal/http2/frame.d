@@ -8,6 +8,7 @@ import std.range;
 import std.array;
 import std.algorithm.iteration;
 import std.algorithm.mutation;
+import std.exception;
 
 
 /** This module implements HTTP/2 Frames, as defined in RFC 7540 under:
@@ -113,12 +114,12 @@ void unpackHTTP2Frame(R,T)(ref R payloadDst, T src, HTTP2FrameHeader header, ref
 			break;
 
 		case HTTP2FrameType.PRIORITY:
-			assert(len == 5, "Invalid PRIORITY Frame");
+			enforce(len == 5, "Invalid PRIORITY Frame");
 			sdep.fill(src);
 			break;
 
 		case HTTP2FrameType.RST_STREAM:
-			assert(len == 4, "Invalid RST_STREAM Frame");
+			enforce(len == 4, "Invalid RST_STREAM Frame");
 			foreach(b; src.takeExactly(len)) {
 				payloadDst.put(b);
 				src.popFront();
@@ -126,10 +127,10 @@ void unpackHTTP2Frame(R,T)(ref R payloadDst, T src, HTTP2FrameHeader header, ref
 			break;
 
 		case HTTP2FrameType.SETTINGS:
-			assert(len % 6 == 0, "Invalid SETTINGS Frame (FRAME_SIZE error)");
-			assert(header.streamId == 0, "Invalid streamId for SETTINGS Frame");
+			enforce(len % 6 == 0, "Invalid SETTINGS Frame (FRAME_SIZE error)");
+			enforce(header.streamId == 0, "Invalid streamId for SETTINGS Frame");
 			if(header.flags & 0x1) { // this is an ACK frame
-				assert(len == 0, "Invalid SETTINGS ACK Frame (FRAME_SIZE error)");
+				enforce(len == 0, "Invalid SETTINGS ACK Frame (FRAME_SIZE error)");
 				ack = true;
 				break;
 			}
@@ -156,8 +157,8 @@ void unpackHTTP2Frame(R,T)(ref R payloadDst, T src, HTTP2FrameHeader header, ref
 			break;
 
 		case HTTP2FrameType.PING:
-			assert(len == 8, "Invalid PING Frame (FRAME_SIZE error)");
-			assert(header.streamId == 0, "Invalid streamId for PING Frame");
+			enforce(len == 8, "Invalid PING Frame (FRAME_SIZE error)");
+			enforce(header.streamId == 0, "Invalid streamId for PING Frame");
 			if(header.flags & 0x1) {
 				ack = true;
 			}
@@ -168,8 +169,8 @@ void unpackHTTP2Frame(R,T)(ref R payloadDst, T src, HTTP2FrameHeader header, ref
 			break;
 
 		case HTTP2FrameType.GOAWAY: // GOAWAY is used to close connection (in handler)
-			assert(len >= 8, "Invalid GOAWAY Frame (FRAME_SIZE error)");
-			assert(header.streamId == 0, "Invalid streamId for GOAWAY Frame");
+			enforce(len >= 8, "Invalid GOAWAY Frame (FRAME_SIZE error)");
+			enforce(header.streamId == 0, "Invalid streamId for GOAWAY Frame");
 			foreach(b; src.takeExactly(len)) {
 				payloadDst.put(b);
 				src.popFront();
@@ -177,7 +178,7 @@ void unpackHTTP2Frame(R,T)(ref R payloadDst, T src, HTTP2FrameHeader header, ref
 			break;
 
 		case HTTP2FrameType.WINDOW_UPDATE:
-			assert(len == 4, "Invalid WINDOW_UPDATE Frame (FRAME_SIZE error)");
+			enforce(len == 4, "Invalid WINDOW_UPDATE Frame (FRAME_SIZE error)");
 			foreach(i,b; src.takeExactly(len).enumerate) {
 				if(i == 0) b &= 127; // reserved bit
 				payloadDst.put(b);
@@ -186,7 +187,7 @@ void unpackHTTP2Frame(R,T)(ref R payloadDst, T src, HTTP2FrameHeader header, ref
 			break;
 
 		case HTTP2FrameType.CONTINUATION:
-			assert(header.streamId != 0, "Invalid streamId for CONTINUATION frame");
+			enforce(header.streamId != 0, "Invalid streamId for CONTINUATION frame");
 			foreach(b; src.takeExactly(len)) {
 				payloadDst.put(b);
 				src.popFront();
@@ -195,7 +196,7 @@ void unpackHTTP2Frame(R,T)(ref R payloadDst, T src, HTTP2FrameHeader header, ref
 			break;
 
 		default:
-			assert(false, "Invalid frame header unpacked");
+			throw new Exception("Invalid frame header unpacked");
 	}
 }
 
