@@ -185,7 +185,12 @@ bool handleHTTP2Request(UStream)(ref HTTP2ConnectionStream!UStream stream, TCPCo
 	// parse request:
 	// both status line + headers (already unpacked in `headers`)
 	// defined in vibe.http.server because of protected struct HTTPServerRequest
-	parseHTTP2RequestHeader(headers, req);
+	try {
+		parseHTTP2RequestHeader(headers, req);
+	} catch (Exception e) {
+		logWarn(e.msg);
+		return false;
+	}
 
 	string reqhost;
 	ushort reqport = 0;

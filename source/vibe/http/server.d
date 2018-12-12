@@ -2598,8 +2598,14 @@ void parseHTTP2RequestHeader(R)(ref R headers, ref HTTPServerRequest reqStruct) 
 	import std.algorithm.iteration : filter;
 	auto req = reqStruct.m_data;
 
+	// method must be present as a header
+	auto validReq = headers.find!((h,m) => h.name == m)(":method");
+	if(validReq.empty) {
+		throw new Exception("Invalid HTTP request received");
+	}
+
 	//Method
-	req.method = cast(HTTPMethod)headers.find!((h,m) => h.name == m)(":method")[0].value;
+	req.method = cast(HTTPMethod)validReq[0].value;
 
 	//Host
 	req.host = cast(string)headers.find!((h,m) => h.name == m)(":authority")[0].value;
