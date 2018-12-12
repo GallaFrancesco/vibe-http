@@ -440,8 +440,6 @@ private void handleFrameAlloc(ConnectionStream)(ref ConnectionStream stream, TCP
 				// acknowledge ping with PING ACK Frame
 				auto buf = AllocAppender!(ubyte[])(alloc);
 				buf.createHTTP2FrameHeader(len, header.type, 0x1, header.streamId);
-				import std.stdio;
-				writeln(buf.data);
 				buf.buildHTTP2Frame(payload.data);
 
 				stream.write(buf.data);
@@ -528,9 +526,6 @@ void handleHTTP2HeadersFrame(Stream)(ref Stream stream, TCPConnection connection
 {
 	auto hdec = appender!(HTTP2HeaderTableField[]);
 	try {
-		import std.stdio;
-		writeln(stream.headerBlock);
-		writeln(stream.headerBlock.length);
 		decodeHPACK(cast(immutable(ubyte)[])stream.headerBlock, hdec, table, alloc);
 		// insert data in table
 		hdec.data.each!((h) { if(h.index) table.insert(h); });
