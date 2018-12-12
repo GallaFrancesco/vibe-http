@@ -83,20 +83,20 @@ void unpackHTTP2Frame(R,T)(ref R payloadDst, T src, HTTP2FrameHeader header, ref
 	switch(header.type) {
 		case HTTP2FrameType.DATA:
 			if(header.flags & 0x8) { // padding is set, first bit is pad length
-				len -= cast(size_t)src.front;
+				len -= cast(size_t)src.front + 1;
 				src.popFront();
 			}
 			foreach(b; src.takeExactly(len)) {
 				payloadDst.put(b);
 				src.popFront();
 			}
-			src.popFrontN(header.payloadLength - len); // remove padding
+			src.popFrontN(header.payloadLength - len - 1); // remove padding
 			if(header.flags & 0x1) endStream = true;
 			break;
 
 		case HTTP2FrameType.HEADERS:
 			if(header.flags & 0x8) { // padding is set, first bit is pad length
-				len -= cast(size_t)src.front;
+				len -= cast(size_t)src.front + 1;
 				src.popFront();
 			}
 			if(header.flags & 0x20) { // priority is set, fill `sdep`
@@ -141,7 +141,7 @@ void unpackHTTP2Frame(R,T)(ref R payloadDst, T src, HTTP2FrameHeader header, ref
 
 		case HTTP2FrameType.PUSH_PROMISE:
 			if(header.flags & 0x8) { // padding is set, first bit is pad length
-				len -= cast(size_t)src.front;
+				len -= cast(size_t)src.front + 1;
 				src.popFront();
 			}
 			sdep.isPushPromise = true;
