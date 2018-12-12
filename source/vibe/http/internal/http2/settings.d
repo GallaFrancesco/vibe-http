@@ -132,6 +132,8 @@ HTTP2Setting http2Setting(HTTP2SettingID id, string name) {
 
 struct HTTP2Settings {
 
+	bool isPreface = true;
+
 	// no limit specified in the RFC
 	@http2Setting(0x1, "SETTINGS_HEADER_TABLE_SIZE")
 	HTTP2SettingValue headerTableSize = 4096;
@@ -205,7 +207,6 @@ struct HTTP2Settings {
 			}
 		}
 	}
-
 }
 
 void serializeSettings(R)(ref R dst, HTTP2Settings settings) @safe @nogc

@@ -543,7 +543,7 @@ private void handleFrameAlloc(ConnectionStream)(ref ConnectionStream stream, TCP
 }
 
 /// handle SETTINGS frame exchange (new connection)
-void handleHTTP2SettingsFrame(Stream)(ref Stream stream, ubyte[] data, HTTP2FrameHeader header, ref HTTP2ServerContext context, bool isConnectionPreface = true) @safe
+void handleHTTP2SettingsFrame(Stream)(ref Stream stream, ubyte[] data, HTTP2FrameHeader header, ref HTTP2ServerContext context) @safe
 {
 	// parse settings payload
 	context.settings.unpackSettings(data);
@@ -552,7 +552,10 @@ void handleHTTP2SettingsFrame(Stream)(ref Stream stream, ubyte[] data, HTTP2Fram
 	FixedAppender!(ubyte[], 9) ackReply;
 	ackReply.createHTTP2FrameHeader(0, header.type, 0x1, header.streamId);
 
-	if(isConnectionPreface) sendHTTP2SettingsFrame(stream, context);
+	if(context.settings.isPreface) {
+		sendHTTP2SettingsFrame(stream, context);
+		context.settings.isPreface = false;
+	}
 
 	stream.write(ackReply.data);
 	logInfo("Sent SETTINGS ACK");
