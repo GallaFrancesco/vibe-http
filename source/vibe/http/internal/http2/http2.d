@@ -378,42 +378,31 @@ private void handleFrameAlloc(ConnectionStream)(ref ConnectionStream stream, TCP
 			if(sdep.isSet) {
 				// update stream dependency with data in `sdep`
 			}
+
+			// save the header block for processing
+			stream.putHeaderBlock(payload.data);
+
+			// parse headers in payload
+			if(endHeaders) {
+				logInfo("Received full HEADERS block");
+				auto hdec = appender!(HTTP2HeaderTableField[]);
+				handleHTTP2HeadersFrame(stream, connection, context, table, alloc);
+
+			} else {
+				// wait for the next CONTINUATION frame until end_headers flag is set
+				// END_STREAM flag does not count in this case
+				logInfo("Incomplete HEADERS block, waiting for CONTINUATION frame.");
+				handleFrameAlloc(stream, connection, context, alloc);
+				return;
+			}
+
+			// check END_STREAM flag
 			if(endStream) {
 				if(stream.state == HTTP2StreamState.HALF_CLOSED_LOCAL) {
 					stream.state = HTTP2StreamState.CLOSED;
 				} else {
 					stream.state = HTTP2StreamState.HALF_CLOSED_REMOTE;
 				}
-			}
-			// parse headers in payload
-			if(endHeaders) {
-				logInfo("Received full HEADERS block");
-				auto hdec = appender!(HTTP2HeaderTableField[]);
-				try {
-					decodeHPACK(cast(immutable(ubyte)[])payload.data, hdec, table, alloc);
-					// insert data in table
-					hdec.data.each!((h) { if(h.index) table.insert(h); });
-					// write a response (HEADERS + DATA according to request method)
-					handleHTTP2Request(stream, connection, context, hdec.data, table, alloc);
-				} catch (HPACKException e) {
-					// send GOAWAY frame
-					BatchBuffer!(ubyte, GOAWAYFrameLength) gbuf;
-					gbuf.putN(GOAWAYFrameLength);
-
-					gbuf.buildGOAWAYFrame(stream.streamId, HTTP2Error.COMPRESSION_ERROR);
-					stream.write(gbuf.peekDst);
-
-					logWarn("%s: %s", "Sent GOAWAY Frame", e.message);
-					stream.state = HTTP2StreamState.CLOSED;
-					return;
-				}
-			} else {
-				// wait for the next CONTINUATION frame until end_headers flag is set
-				// END_STREAM flag does not count in this case
-				logInfo("Incomplete HEADERS block, waiting for CONTINUATION frame.");
-				stream.putHeaderBlock(payload.data);
-				handleFrameAlloc(stream, connection, context, alloc);
-				return;
 			}
 			break;
 
@@ -481,20 +470,11 @@ private void handleFrameAlloc(ConnectionStream)(ref ConnectionStream stream, TCP
 			break;
 
 		case HTTP2FrameType.CONTINUATION:
-			// process header block fragment in payload
 			stream.putHeaderBlock(payload.data);
+			// process header block fragment in payload
 			if(endHeaders) {
 				logInfo("Received full HEADERS block");
-				auto hdec = appender!(HTTP2HeaderTableField[]);
-				try {
-					decodeHPACK(cast(immutable(ubyte)[])payload.data, hdec, table, alloc);
-				} catch (HPACKException e) {
-					logWarn(e.msg);
-					// send GOAWAY frame
-				} catch (Exception e) {
-					assert(false);
-				}
-				handleHTTP2Request(stream, connection, context, hdec.data, table, alloc);
+				handleHTTP2HeadersFrame(stream, connection, context, table, alloc);
 			} else {
 				logInfo("Incomplete HEADERS block, waiting for CONTINUATION frame.");
 				handleFrameAlloc(stream, connection, context, alloc);
@@ -539,6 +519,33 @@ private void handleFrameAlloc(ConnectionStream)(ref ConnectionStream stream, TCP
 			context.resBody.nullify;
 		}
 		logInfo("Sent first HTTP/2 response to H2C connection");
+	}
+}
+
+/// try processing an HEADERS frame, if failure in decoding, send GOAWAY
+void handleHTTP2HeadersFrame(Stream)(ref Stream stream, TCPConnection connection, ref
+		HTTP2ServerContext context, ref IndexingTable table, IAllocator alloc)
+{
+	auto hdec = appender!(HTTP2HeaderTableField[]);
+	try {
+		import std.stdio;
+		writeln(stream.headerBlock);
+		writeln(stream.headerBlock.length);
+		decodeHPACK(cast(immutable(ubyte)[])stream.headerBlock, hdec, table, alloc);
+		// insert data in table
+		hdec.data.each!((h) { if(h.index) table.insert(h); });
+		// write a response (HEADERS + DATA according to request method)
+		handleHTTP2Request(stream, connection, context, hdec.data, table, alloc);
+	} catch (HPACKException e) {
+		// send GOAWAY frame
+		BatchBuffer!(ubyte, GOAWAYFrameLength) gbuf;
+		gbuf.putN(GOAWAYFrameLength);
+
+		gbuf.buildGOAWAYFrame(stream.streamId, HTTP2Error.COMPRESSION_ERROR);
+		stream.write(gbuf.peekDst);
+
+		logWarn("%s: %s", "Sent GOAWAY Frame", e.message);
+		stream.state = HTTP2StreamState.CLOSED;
 	}
 }
 
