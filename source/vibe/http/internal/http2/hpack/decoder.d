@@ -76,6 +76,7 @@ void decode(I, R, T)(ref I src, ref R dst, ref IndexingTable table,  ref T alloc
 		} else { // dynamic table size update (bbuf[2] is set)
 			update = true;
 			auto nsize = bbuf.toInteger(3);
+			logInfo("Updating dynamic table size to: %d octets", nsize);
 			table.updateSize(cast(HTTP2SettingValue)nsize);
 		}
 		assert(!(hres.index && hres.neverIndex), "Invalid header indexing information");
