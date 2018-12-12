@@ -201,7 +201,7 @@ unittest {
 
 	// dummy, just for testing
 	listenHTTP!handleRequest(settings);
-	runApplication();
+	//runApplication();
 }
 
 /**
@@ -353,7 +353,13 @@ private void handleFrameAlloc(ConnectionStream)(ref ConnectionStream stream, TCP
 	if(len) stream.readPayload(rawBuf, len);
 
 	// parse frame
-	auto header = payload.unpackHTTP2Frame(rawBuf.data, endStream, endHeaders, isAck, sdep);
+	HTTP2FrameHeader header;
+	try {
+		header = payload.unpackHTTP2Frame(rawBuf.data, endStream, endHeaders, isAck, sdep);
+	} catch (Exception e) {
+		logWarn(e.msg);
+		return;
+	}
 	stream.streamId = header.streamId;
 
 	logInfo("Received: "~to!string(header.type)~" on streamID "~to!string(header.streamId));
@@ -400,7 +406,7 @@ private void handleFrameAlloc(ConnectionStream)(ref ConnectionStream stream, TCP
 			if(endStream) {
 				if(stream.state == HTTP2StreamState.HALF_CLOSED_LOCAL) {
 					stream.state = HTTP2StreamState.CLOSED;
-				} else {
+				} else if(stream.state != HTTP2StreamState.CLOSED) {
 					stream.state = HTTP2StreamState.HALF_CLOSED_REMOTE;
 				}
 			}
@@ -458,7 +464,9 @@ private void handleFrameAlloc(ConnectionStream)(ref ConnectionStream stream, TCP
 			//stream.write(rawBuf.data);
 			// terminate connection
 			//stream.close();
+			logWarn("Received GOAWAY frame. Closing connection");
 			stream.state = HTTP2StreamState.CLOSED;
+			connection.close();
 			break;
 
 		case HTTP2FrameType.WINDOW_UPDATE:
