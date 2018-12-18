@@ -114,6 +114,8 @@ private size_t decodeInteger(I)(ref I src, ubyte bbuf, uint nbits) @safe @nogc
 
 private void decodeLiteral(I,R)(ref I src, ref R dst) @safe
 {
+	enforceHPACK(!src.empty, "Invalid literal header block");
+
 	ubyte bbuf = src[0];
 	src = src[1..$];
 
