@@ -458,12 +458,6 @@ private void handleFrameAlloc(ConnectionStream)(ref ConnectionStream stream, TCP
 			// set LAST_STREAM_ID to the received value
 			// report error code & additional debug info
 			// respond with GOAWAY
-			//rawBuf.reserve(HTTP2HeaderLength + len);
-			//rawBuf.createHTTP2FrameHeader(len, header.type, 0x0, 0);
-			//rawBuf.buildHTTP2Frame(payload.data);
-			//stream.write(rawBuf.data);
-			// terminate connection
-			//stream.close();
 			logWarn("Received GOAWAY frame. Closing connection");
 			stream.state = HTTP2StreamState.CLOSED;
 			connection.close();
@@ -640,18 +634,22 @@ struct HTTP2ConnectionStream(CS)
 	{
 		switch(st) {
 			case HTTP2StreamState.OPEN:
-				if(m_state == HTTP2StreamState.IDLE) m_state = st;
+				if(m_state == HTTP2StreamState.IDLE ||
+						m_state == HTTP2StreamState.OPEN)
+					m_state = st;
 				else assert(false, "Invalid state");
 				break;
 			case HTTP2StreamState.HALF_CLOSED_LOCAL:
 				if(m_state == HTTP2StreamState.OPEN ||
-						m_state == HTTP2StreamState.RESERVED_REMOTE)
+						m_state == HTTP2StreamState.RESERVED_REMOTE ||
+						m_state == HTTP2StreamState.HALF_CLOSED_LOCAL)
 					m_state = st;
 				else assert(false, "Invalid state");
 				break;
 			case HTTP2StreamState.HALF_CLOSED_REMOTE:
 				if(m_state == HTTP2StreamState.OPEN ||
-						m_state == HTTP2StreamState.RESERVED_LOCAL)
+						m_state == HTTP2StreamState.RESERVED_LOCAL ||
+						m_state == HTTP2StreamState.HALF_CLOSED_REMOTE)
 					m_state = st;
 				else assert(false, "Invalid state");
 				break;
