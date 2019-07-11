@@ -377,6 +377,7 @@ alias HTTPContext = HTTPServerContext;
 
 /// Delegate based request handler
 alias HTTPServerRequestDelegate = void delegate(HTTPServerRequest req, HTTPServerResponse res) @safe;
+alias HTTPServerRequestDelegateS = void delegate(scope HTTPServerRequest req, scope HTTPServerResponse res) @safe;
 /// Static function based request handler
 alias HTTPServerRequestFunction = void function(HTTPServerRequest req, HTTPServerResponse res) @safe;
 
@@ -914,6 +915,10 @@ struct HTTPServerResponse {
 	@property void httpVersion(HTTPVersion h) { m_data.httpVersion = h; }
 
 	@property scope int statusCode() { return m_data.statusCode; }
+
+	@property void statusCode(scope HTTPStatus code) @safe {
+		m_data.statusCode = code;
+	}
 
 	@property scope string statusPhrase() { return m_data.statusPhrase; }
 
