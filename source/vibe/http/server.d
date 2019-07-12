@@ -738,7 +738,7 @@ struct HTTPServerRequest {
 	}
 
 	package {
-		@property scope const(HTTPServerSettings) serverSettings()
+		@property scope const(HTTPServerSettings) serverSettings() const
 		@safe {
 			return m_data.serverSettings;
 		}
@@ -920,9 +920,17 @@ struct HTTPServerResponse {
 		m_data.statusCode = code;
 	}
 
+	@property void statusCode(scope int code) @safe {
+		m_data.statusCode = code;
+	}
+
 	@property scope string statusPhrase() { return m_data.statusPhrase; }
 
 	@property scope InetHeaderMap headers() { return m_data.headers; }
+
+	@property void headers(scope InetHeaderMap hmap) @safe {
+		m_data.headers = hmap;
+	}
 
 	@property scope Cookie[string] cookies() { return m_data.cookies; }
 
