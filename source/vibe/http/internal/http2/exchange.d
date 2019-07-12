@@ -216,8 +216,10 @@ bool handleHTTP2Request(UStream)(ref HTTP2ConnectionStream!UStream stream,
 	parseHTTP2RequestHeader(headers, req);
 	if(req.host.empty) {
 		req.host = tcp_connection.localAddress.toString;
-		req.requestURI = req.host ~ req.path;
 	}
+
+	if(req.tls) req.requestURI = "https://" ~ req.host ~ req.path;
+	else req.requestURI = "http://" ~ req.host ~ req.path;
 
 	string reqhost;
 	ushort reqport = 0;
