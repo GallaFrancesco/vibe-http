@@ -99,7 +99,7 @@ private void convertStartMessage(T)(string src, ref T dst, ref IndexingTable tab
 			if(type == StartLine.REQUEST) { // request
 				//	request-line = method SP request-target SP HTTP-version CRLF
 					try {
-						auto method = httpMethodFromString(buf);
+						auto method = httpMethodFromString(buf); // might throw
 						H2F(":method", method).encodeHPACK(dst, table);
 					} catch(Exception e) {
 						H2F(":scheme", (isTLS ? "https" : "http")).encodeHPACK(dst, table);
