@@ -1,0 +1,6 @@
+name "http2-fileserver-example"
+description "Simple HTTP server that serves static files, with HTTP/2"
+
+dependency "vibe-http" path="../../"
+
+versions "VibeForceALPN"

@@ -416,9 +416,11 @@ private void sendFileImpl(scope HTTPServerRequest req, scope HTTPServerResponse 
 		fil.pipe(res.bodyWriter, rangeEnd - rangeStart + 1);
 		logTrace("partially sent file %d-%d, %s!", rangeStart, rangeEnd, res.headers["Content-Type"]);
 	} else {
-		if (pce && !encodedFilepath.length)
+		if ((pce && !encodedFilepath.length) || req.httpVersion == HTTPVersion.HTTP_2)
 			fil.pipe(res.bodyWriter);
-		else res.writeRawBody(fil);
-		logTrace("sent file %d, %s!", fil.size, res.headers["Content-Type"]);
+		else
+			res.writeRawBody(fil);
+
+		//logTrace("sent file %d, %s!", fil.size, res.headers["Content-Type"]);
 	}
 }
