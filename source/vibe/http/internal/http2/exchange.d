@@ -67,7 +67,7 @@ ubyte[] buildHeaderFrame(alias type)(string statusLine, InetHeaderMap headers,
 		headers.remove("Host");
 	}
 
-	foreach(k,v; headers) {
+	foreach(k,v; headers.byKeyValue) {
 		H2F(k.toLower,v).encodeHPACK(pbuf, table);
 	}
 

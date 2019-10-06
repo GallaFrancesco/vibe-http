@@ -1628,7 +1628,7 @@ struct HTTPServerRequestData {
 			if (_cookies.isNull) {
 				_cookies = CookieValueMap.init;
 				if (auto pv = "cookie" in headers)
-					parseCookies(*pv, _cookies);
+					parseCookies(*pv, _cookies.get);
 			}
 			return _cookies.get;
 		}
@@ -1641,7 +1641,7 @@ struct HTTPServerRequestData {
 		@property ref FormFields query() @safe {
 			if (_query.isNull) {
 				_query = FormFields.init;
-				parseURLEncodedForm(queryString, _query);
+				parseURLEncodedForm(queryString, _query.get);
 			}
 
 			return _query.get;
@@ -1719,7 +1719,7 @@ struct HTTPServerRequestData {
 		private void parseFormAndFiles() @safe {
 			_form = FormFields.init;
 			assert(!!bodyReader);
-			parseFormData(_form, _files, headers.get("Content-Type", ""), bodyReader, MaxHTTPHeaderLineLength);
+			parseFormData(_form.get, _files, headers.get("Content-Type", ""), bodyReader, MaxHTTPHeaderLineLength);
 		}
 
 		//* Contains information about any uploaded file for a HTML _form request.
@@ -2555,7 +2555,7 @@ struct HTTPServerResponseData {
 					this.statusPhrase.length ? this.statusPhrase : httpStatusText(this.statusCode));
 
 			// write all normal headers
-			foreach (k, v; this.headers) {
+			foreach (k, v; this.headers.byKeyValue) {
 				dst.put(k);
 				dst.put(": ");
 				dst.put(v);
@@ -2683,7 +2683,7 @@ uint parseRequestHeader(InputStream)(HTTPServerRequest reqStruct, InputStream ht
 	//headers
 	parseRFC5322Header(stream, req.headers, MaxHTTPHeaderLineLength, alloc, false);
 
-	foreach (k, v; req.headers)
+	foreach (k, v; req.headers.byKeyValue)
 		logTrace("%s: %s", k, v);
 	logTrace("--------------------");
 	return 0;
